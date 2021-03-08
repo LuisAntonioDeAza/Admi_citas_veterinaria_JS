@@ -7,9 +7,11 @@ const ipSintomas = document.querySelector('#sintomas');
 
 const Formulario = document.querySelector('#nueva-cita');
 const ContenedorCita = document.querySelector('#citas');
+let editado;
 
 //Clases
 class Cita {
+
     constructor() {
         this.cita = [];
     }
@@ -17,14 +19,22 @@ class Cita {
     agregarcita(citas) {
         this.cita = [...this.cita, citas];
     }
+    elimiarCit(ids) {
+        this.cita = this.cita.filter(date => date.id !== ids);
+    }
+    editarDatosCita(citaA){
+        this.cita = this.cita.map(cita => cita.id === citaA.id ? citaA : cita);
+    }
 }
 //
+
 class UI {
     imprimirMensaje(mensje, tipo) {
         const msjE = document.querySelector('#contenido');
         if (msjE.children[0].classList.contains('alert')) {
             msjE.children[0].remove();
         }
+
         const divMensaje = document.createElement('div');
         divMensaje.classList.add('text-center', 'alert', 'd-block', 'col-12', tipo);
 
@@ -35,14 +45,13 @@ class UI {
     imprimirCitas(citas) {
         const { cita } = citas;
 
-        while(ContenedorCita.firstChild){
+        while (ContenedorCita.firstChild) {
             ContenedorCita.removeChild(ContenedorCita.firstChild);
         }
 
         cita.forEach(cit => {
+         const { mascota, propietario, telefono, fecha, hora, sintomas, id } = cit;
 
-           
-            const { mascota, propietario, telefono, fecha, hora, sintomas, id } = cit;
             const divCita = document.createElement('div');
             divCita.classList.add('cita', 'p-3');
             divCita.dataset.id = id;
@@ -78,6 +87,22 @@ class UI {
             
             `;
 
+            //btnEmilinar cita
+            const btnEliminar = document.createElement('button');
+            btnEliminar.classList.add('btn', 'btn-danger');
+            btnEliminar.innerHTML = `Eliminar`;
+
+            //btn editar
+            const btnEditar = document.createElement('button');
+            btnEditar.classList.add('btn', 'btn-info');
+            btnEditar.innerHTML = `Editar`;
+
+            btnEliminar.onclick = () => {
+                elimiarCita(id);
+            }
+            btnEditar.onclick = () => {
+                editarCita(cit);
+            }
 
             divCita.appendChild(Pmascota);
             divCita.appendChild(propetarioP);
@@ -85,6 +110,8 @@ class UI {
             divCita.appendChild(ConsultaFecha);
             divCita.appendChild(ConsultaHora);
             divCita.appendChild(Sintomas);
+            divCita.appendChild(btnEliminar);
+            divCita.appendChild(btnEditar);
 
             ContenedorCita.appendChild(divCita);
 
@@ -93,8 +120,10 @@ class UI {
     }
 
 }
+//instancias a las clases
 const ui = new UI();
 const administradorDeCitas = new Cita();
+
 //Funciones
 EventListener();
 
@@ -124,23 +153,38 @@ function datosCitas(e) {
 
 function agregarCita(e) {
     e.preventDefault();
+    if(Formulario.querySelector('button[type="submit"]').classList.contains('btn-warning')){
+        Formulario.querySelector('button[type="submit"]').classList.remove('btn-warning');
+        Formulario.querySelector('button[type="submit"]').classList.add('btn-success');
+    }
+    
     const { mascota, propietario, telefono, fecha, hora, sintomas } = datosCitasOBJ;
 
     if (mascota === '' || propietario === '' || telefono === '' || fecha === '' || hora === '' || sintomas === '') {
         ui.imprimirMensaje('Ningun campo puede estar vacio', 'alert-danger');
         return;
-    } else {
-        ui.imprimirMensaje('Cita agreagada con exito', 'alert-success');
+    } 
+
+    if(editado){
+        Formulario.querySelector('button[type="submit"]').textContent = 'Crear nueva cita';
+        administradorDeCitas.editarDatosCita({...datosCitasOBJ});
+        ui.imprimirMensaje('Cita Editada con exito', 'alert-primary');
+        editado = false;
+        
+    }else{
+        
         datosCitasOBJ.id = Date.now();
         administradorDeCitas.agregarcita({ ...datosCitasOBJ });
-
+        ui.imprimirMensaje('Cita agreagada con exito', 'alert-success');
+       
+    }
+        
         Formulario.reset();
         ui.imprimirCitas(administradorDeCitas);
-
         reiniciarOBJ();
-    }
+    
 }
-
+//
 function reiniciarOBJ() {
     datosCitasOBJ.mascota = '';
     datosCitasOBJ.propietario = '';
@@ -149,4 +193,36 @@ function reiniciarOBJ() {
     datosCitasOBJ.hora = '';
     datosCitasOBJ.sintomas = '';
 
+}
+//
+function elimiarCita(id) {
+    administradorDeCitas.elimiarCit(id);
+    ui.imprimirMensaje('Cita Eliminada con exito', 'alert-warning');
+    ui.imprimirCitas(administradorDeCitas);
+}
+//
+function editarCita(citas) {
+    
+    const { mascota, propietario, telefono, fecha, hora, sintomas,id } = citas;
+    ui.imprimirMensaje(`Editando cita mascota : ${mascota}`, 'alert-info');
+    ipMascota.value = mascota;
+    ipPropetario.value = propietario;
+    ipTelefono.value = telefono;
+    ipFecha.value = fecha;
+    ipHora.value = hora;
+    ipSintomas.value = sintomas;
+
+    datosCitasOBJ.mascota = mascota;
+    datosCitasOBJ.propietario = propietario;
+    datosCitasOBJ.telefono = telefono;
+    datosCitasOBJ.fecha = fecha;
+    datosCitasOBJ.hora = hora;
+    datosCitasOBJ.sintomas = sintomas;
+    datosCitasOBJ.id = id;
+
+    Formulario.querySelector('button[type="submit"]').textContent = 'Guardar Cambios';
+    Formulario.querySelector('button[type="submit"]').classList.remove('btn-success');
+    Formulario.querySelector('button[type="submit"]').classList.add('btn-warning');
+
+    editado = true;
 }
